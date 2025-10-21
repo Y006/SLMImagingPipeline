@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Virtual env
+.venv/
+.env/
+
+# Data & outputs
+examples/sample_input/*.tmp
+*_masked_r*/
+outputs/
+folder-alias.json
+private-folder-alias.json
+.vscode/settings.json
+fza_patten_gen/*.png
+fza_patten_gen_masked_r*/*.png
+*.jpg
+*.jpeg
+*.tif   
+*.tiff
+*.bmp
+*.png
+!分辨率测试卡.JPG
+.counter.json
+
+# 忽略整个 output 目录及其所有内容
+/output/
+/output1014/

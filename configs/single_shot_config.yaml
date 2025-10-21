@@ -1,0 +1,26 @@
+project:
+  id: 2025-10-21-exp001
+  root_dir: "./output"
+  description: "继续尝试各种方法来实现高质量屏幕场景的重建"
+
+task:
+  mode: "capture_measurement"     # 可选: calibration | capture_psf | capture_measurement
+  repeat: 1               # 拍摄次数
+  description: "我们在其他条件不变的情况下更换底座，较矮的底座"
+
+capture_settings:
+  exposure_us: 2099000
+  monitor_idx: 
+  scale_factor: 
+  display_position:    # 功能需要在代码里面修改以启用
+  display_image_path: ""
+  slm_image_path: "D:/qjy/camera_slm_pipeline/data/fza_bin_gen/FZA_bin_R25.png"
+
+physical_setup:
+  object_name: "扑克牌"
+  brightness: 4060
+  sensor_mask_distance: "30cm"
+  mask_object_distance: ""
+  point_light_brightness: 4060
+  mask_LED-light_distance: "6*2.5cm"
+  

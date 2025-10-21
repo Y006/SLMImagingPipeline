@@ -1,0 +1,1 @@
+在根目录运行 `python -m src.pipeline.single_shot`
