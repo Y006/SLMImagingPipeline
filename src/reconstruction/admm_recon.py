@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+from loguru import logger
 
 # ================================
 # 基础图像操作
@@ -15,14 +16,20 @@ def crop(model, x):
     """裁剪张量，去除之前的零填充，恢复到原始图像大小。"""
     C01 = model.PAD_SIZE0; C02 = model.PAD_SIZE0 + model.DIMS0              # Crop indices 
     C11 = model.PAD_SIZE1; C12 = model.PAD_SIZE1 + model.DIMS1              # Crop indices 
-    return x[:, :, C01:C02, C11:C12]
+    logger.debug(f"[crop] 输入形状: {x.shape}, 裁剪范围: [{C01}:{C02}, {C11}:{C12}]")
+    cropped = x[:, :, C01:C02, C11:C12]
+    logger.debug(f"[crop] 输出形状: {cropped.shape}")
+    return cropped
 def normalize_image(image):
     """归一化图像像素值，通常缩放到 [0,1] 或 [-1,1]。"""
     out_shape = image.shape
+    logger.debug(f"[normalize_image] 输入形状: {out_shape}, 值域: [{image.min():.4f}, {image.max():.4f}]")
     image_flat = image.reshape((out_shape[0],out_shape[1]*out_shape[2]*out_shape[3]))
     image_max,_ = torch.max(image_flat,1)
+    logger.debug(f"[normalize_image] 每个通道最大值: {image_max}")
     image_max_eye = torch.eye(out_shape[0], dtype = torch.float32, device=image.device)*1/image_max
     image_normalized = torch.reshape(torch.matmul(image_max_eye, image_flat), (out_shape[0],out_shape[1],out_shape[2],out_shape[3]))
+    logger.debug(f"[normalize_image] 归一化后值域: [{image_normalized.min():.4f}, {image_normalized.max():.4f}]")
     return image_normalized
 
 # ================================
@@ -93,9 +100,9 @@ def soft_2d_gradient2_rgb(model, v,h,tau):
     
     mmult = magt/(mag)#+1e-5)
     if torch.any(mmult != mmult):
-        print('here')
+        logger.debug('NaN detected in mmult (here)')
     if torch.any(v != v):
-        print('there')
+        logger.debug('NaN detected in v (there)')
 
     return v*mmult[:,:, :-1,:], h*mmult[:,:, :,:-1]
 
@@ -108,19 +115,23 @@ def pad_zeros_torch(model, x):
     return torch.nn.functional.pad(x, PADDING, 'constant', 0)
 def Hfor(model, x):
     """前向算子 H (卷积/成像)，计算 Hx。"""
+    logger.debug(f"[Hfor] 输入形状: {x.shape}, 值域: [{x.min():.4f}, {x.max():.4f}]")
     xc = torch.stack((x, torch.zeros_like(x, dtype=torch.float32)), -1)
     X = torch.view_as_real(torch.fft.fft2(torch.view_as_complex(xc)))
     HX = complex_multiplication(model.H, X)
     out = torch.view_as_real(torch.fft.ifft2(torch.view_as_complex(HX)))
     out_r, _ = torch.unbind(out, -1)
+    logger.debug(f"[Hfor] 输出形状: {out_r.shape}, 值域: [{out_r.min():.4f}, {out_r.max():.4f}]")
     return out_r
 def Hadj(model, x):
     """伴随算子 H* (转置卷积)，计算 H^T x。"""
+    logger.debug(f"[Hadj] 输入形状: {x.shape}, 值域: [{x.min():.4f}, {x.max():.4f}]")
     xc = torch.stack((x, torch.zeros_like(x, dtype=torch.float32)), -1)
     X = torch.view_as_real(torch.fft.fft2(torch.view_as_complex(xc)))
     HX = complex_multiplication(model.Hconj, X)
     out = torch.view_as_real(torch.fft.ifft2(torch.view_as_complex(HX)))
     out_r, _ = torch.unbind(out, -1)
+    logger.debug(f"[Hadj] 输出形状: {out_r.shape}, 值域: [{out_r.min():.4f}, {out_r.max():.4f}]")
     return out_r
 
 def admm(model, in_vars, alpha2k_1, alpha2k_2, CtC, Cty, n):  
@@ -143,6 +154,9 @@ def admm(model, in_vars, alpha2k_1, alpha2k_2, CtC, Cty, n):
     sk, alpha1k, alpha3k, Hskp = in_vars
     mu1, mu2, mu3 = model.mu1[n], model.mu2[n], model.mu3[n]
     tau = model.tau[n]
+    
+    logger.debug(f"[ADMM迭代{n}] 开始 - 参数: mu1={mu1:.2e}, mu2={mu2:.2e}, mu3={mu3:.2e}, tau={tau:.2e}")
+    logger.debug(f"[ADMM迭代{n}] 输入变量形状 - sk:{sk.shape}, alpha1k:{alpha1k.shape}, alpha3k:{alpha3k.shape}")
 
     # === 残差存储 (仅用于调试/日志) ===
     dual_resid_s, primal_resid_s = [], []
@@ -157,22 +171,26 @@ def admm(model, in_vars, alpha2k_1, alpha2k_2, CtC, Cty, n):
     # Step 1: 更新 u ← soft(∇s + α2/μ2, τ/μ2)
     # ------------------------------------------------------------------
     Lsk1, Lsk2 = L_tf(sk)  
+    logger.debug(f"[ADMM迭代{n}] Step1: 计算梯度 Lsk1:{Lsk1.shape}, Lsk2:{Lsk2.shape}")
     ukp_1, ukp_2 = soft_2d_gradient2_rgb(
         model, 
         Lsk1 + alpha2k_1 / mu2, 
         Lsk2 + alpha2k_2 / mu2, 
         tau
     )
+    logger.debug(f"[ADMM迭代{n}] Step1: soft-thresholding后 ukp_1值域:[{ukp_1.min():.4f}, {ukp_1.max():.4f}]")
 
     # ------------------------------------------------------------------
     # Step 2: 更新 v ← argmin 0.5||y - Hv||^2 + (μ1/2)||v - (...)||^2
     # ------------------------------------------------------------------
     vkp = Vmult * (mu1 * (alpha1k / mu1 + Hskp) + Cty)
+    logger.debug(f"[ADMM迭代{n}] Step2: 更新v完成, vkp值域:[{vkp.min():.4f}, {vkp.max():.4f}]")
 
     # ------------------------------------------------------------------
     # Step 3: 更新 w ← max(α3/μ3 + s, 0)
     # ------------------------------------------------------------------
     wkp = torch.maximum(alpha3k / mu3 + sk, torch.zeros_like(sk))
+    logger.debug(f"[ADMM迭代{n}] Step3: 更新w完成(非负约束), wkp值域:[{wkp.min():.4f}, {wkp.max():.4f}]")
 
     # ------------------------------------------------------------------
     # Step 4: 更新 s ← FFT 解 (频域滤波)
@@ -182,6 +200,7 @@ def admm(model, in_vars, alpha2k_1, alpha2k_2, CtC, Cty, n):
         + mu1 * Hadj(model, vkp - alpha1k / mu1)
         + mu2 * Ltv_tf(ukp_1 - alpha2k_1 / mu2, ukp_2 - alpha2k_2 / mu2)
     )
+    logger.debug(f"[ADMM迭代{n}] Step4: FFT求解前 skp_numer值域:[{skp_numer.min():.4f}, {skp_numer.max():.4f}]")
     SKP_numer = torch.view_as_real(
     torch.fft.fft2(torch.view_as_complex(make_complex(skp_numer)))
     )
@@ -199,6 +218,7 @@ def admm(model, in_vars, alpha2k_1, alpha2k_2, CtC, Cty, n):
     dual_resid_s.append(mu1 * torch.norm(Hskp - Hskp_up))
     primal_resid_s.append(torch.norm(r_sv))
     alpha1kup = alpha1k + mu1 * r_sv
+    logger.debug(f"[ADMM迭代{n}] Step5-v: dual_resid={dual_resid_s[-1]:.3e}, primal_resid={primal_resid_s[-1]:.3e}")
 
     # u 对偶
     Lskp1, Lskp2 = L_tf(skp)
@@ -206,12 +226,14 @@ def admm(model, in_vars, alpha2k_1, alpha2k_2, CtC, Cty, n):
     dual_resid_u.append(mu2 * torch.sqrt(torch.norm(Lsk1 - Lskp1)**2 + torch.norm(Lsk2 - Lskp2)**2))
     primal_resid_u.append(torch.sqrt(torch.norm(r_su_1)**2 + torch.norm(r_su_2)**2))
     alpha2k_1up, alpha2k_2up = alpha2k_1 + mu2 * r_su_1, alpha2k_2 + mu2 * r_su_2
+    logger.debug(f"[ADMM迭代{n}] Step5-u: dual_resid={dual_resid_u[-1]:.3e}, primal_resid={primal_resid_u[-1]:.3e}")
 
     # w 对偶
     r_sw = skp - wkp
     dual_resid_w.append(mu3 * torch.norm(sk - skp))
     primal_resid_w.append(torch.norm(r_sw))
     alpha3kup = alpha3k + mu3 * r_sw
+    logger.debug(f"[ADMM迭代{n}] Step5-w: dual_resid={dual_resid_w[-1]:.3e}, primal_resid={primal_resid_w[-1]:.3e}")
 
     # === 输出 ===
     out_vars = torch.stack([skp, alpha1kup, alpha3kup, Hskp_up])
@@ -236,6 +258,8 @@ class ADMM_Net(torch.nn.Module):
         """
         super(ADMM_Net, self).__init__()
         
+        logger.info(f"[ADMM_Net] 初始化开始 - 迭代次数:{iterations}, 设备:{cuda_device}")
+        
         # ======================
         # 基本参数
         # ======================
@@ -246,6 +270,7 @@ class ADMM_Net(torch.nn.Module):
         # 初始化 ADMM 学习参数 (mu1, mu2, mu3, tau)
         # self.initialize_learned_variables()
         self.initialize_learned_variables(mu1_init, mu2_init, mu3_init, tau_init)
+        logger.debug(f"[ADMM_Net] 超参数初始化 - mu1={mu1_init:.2e}, mu2={mu2_init:.2e}, mu3={mu3_init:.2e}, tau={tau_init:.2e}")
 
         # ======================
         # 图像维度与填充
@@ -254,6 +279,7 @@ class ADMM_Net(torch.nn.Module):
         self.DIMS1     = h.shape[1]  # 宽度
         self.PAD_SIZE0 = self.DIMS0 // 2
         self.PAD_SIZE1 = self.DIMS1 // 2
+        logger.debug(f"[ADMM_Net] PSF尺寸: {h.shape}, 填充尺寸: [{self.PAD_SIZE0}, {self.PAD_SIZE1}]")
 
         # ======================
         # PSF (点扩散函数)
@@ -309,10 +335,12 @@ class ADMM_Net(torch.nn.Module):
         # Step 1: 输入准备
         # ------------------------------------------------------------------
         y = inputs
+        logger.info(f"[ADMM_Net.forward] 开始重建 - 输入形状:{y.shape}, 值域:[{y.min():.4f}, {y.max():.4f}]")
 
         # 构造零填充
         Cty = pad_zeros_torch(self, y)                      
-        CtC = pad_zeros_torch(self, torch.ones_like(y))     
+        CtC = pad_zeros_torch(self, torch.ones_like(y))
+        logger.debug(f"[ADMM_Net.forward] 零填充完成 - Cty形状:{Cty.shape}, CtC形状:{CtC.shape}")     
 
         # ------------------------------------------------------------------
         # Step 2: 初始化变量
@@ -336,9 +364,10 @@ class ADMM_Net(torch.nn.Module):
         # ------------------------------------------------------------------
         # Step 3: 主循环 (ADMM 迭代)
         # ------------------------------------------------------------------
+        logger.info(f"[ADMM_Net.forward] 开始主迭代循环，共{self.iterations}次迭代")
         for i in range(self.iterations):
-            # print(f"\n--- Iteration {i+1}/{self.iterations} ---")
-            # print(f"[Iter {i}] mu1={self.mu1[i].item():.2e}, mu2={self.mu2[i].item():.2e}, mu3={self.mu3[i].item():.2e}, tau={self.tau[i].item():.2e}")
+            logger.info(f"\n========== 迭代 {i+1}/{self.iterations} ==========")
+            logger.debug(f"[迭代{i+1}] 参数: mu1={self.mu1[i].item():.2e}, mu2={self.mu2[i].item():.2e}, mu3={self.mu3[i].item():.2e}, tau={self.tau[i].item():.2e}")
 
             out_vars, alpha2k_1_up, alpha2k_2_up = admm(
                 self, 
@@ -349,7 +378,7 @@ class ADMM_Net(torch.nn.Module):
                 i
             )
 
-            # print(f"[ADMM] out_vars.shape = {out_vars.shape}")
+            logger.debug(f"[迭代{i+1}] ADMM更新完成 - out_vars形状:{out_vars.shape}")
 
             # 保存结果
             in_vars.append(out_vars)
@@ -359,11 +388,12 @@ class ADMM_Net(torch.nn.Module):
             # 当前迭代输出 (裁剪+归一化)
             x_out = crop(self, in_vars[-1][0])
             x_outn = normalize_image(x_out)
-            # print(f"[Iter {i+1}] x_out.shape = {x_out.shape}, x_outn.shape = {x_outn.shape}")
+            logger.info(f"[迭代{i+1}] 完成 - 输出形状:{x_out.shape}, 归一化后:{x_outn.shape}, 值域:[{x_outn.min():.4f}, {x_outn.max():.4f}]")
 
             # 保存中间结果 (可视化/调试用)
             self.in_list = in_vars
 
+        logger.info(f"[ADMM_Net.forward] 重建完成！总迭代次数:{self.iterations}, 最终输出形状:{x_outn.shape}")
         return x_outn
 
 

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import sys
+from loguru import logger
 
 # 让 Python 能看到 examples\HEDS\ 包
 sdk_root = r"C:\Program Files\HOLOEYE Photonics\SLM Display SDK (Python) v4.1.0"
@@ -30,41 +31,41 @@ class SLM:
         if err != HEDSERR_NoError:
             raise RuntimeError(HEDS.SDK.ErrorString(err))
         if self.verbose:
-            print(f"[SDK] HEDS Init v{major}.{minor} OK.")
+            logger.info(f"[SDK] HEDS Init v{major}.{minor} OK.")
 
         self.slm = HEDS.SLM.Init()
         if self.slm.errorCode() != HEDSERR_NoError:
             raise RuntimeError(HEDS.SDK.ErrorString(self.slm.errorCode()))
 
         if self.verbose:
-            print("[SLM] Device opened successfully.")
+            logger.info("[SLM] Device opened successfully.")
 
     def img_show(self, img_path: str) -> bool:
         """将传入路径的图片显示到 SLM，返回是否成功"""
         if not os.path.isfile(img_path):
             if self.verbose:
-                print(f"[SLM] Image not found: {img_path}")
+                logger.warning(f"[SLM] Image not found: {img_path}")
             return False
 
         if self.slm is None:
             if self.verbose:
-                print("[SLM] Not initialized. Call init() first.")
+                logger.error("[SLM] Not initialized. Call init() first.")
             return False
 
         err, dh = self.slm.loadImageDataFromFile(img_path)
         if err != HEDSERR_NoError or dh.errorCode() != HEDSERR_NoError:
             if self.verbose:
-                print(f"[SLM] Failed to load image: {HEDS.SDK.ErrorString(err)}")
+                logger.error(f"[SLM] Failed to load image: {HEDS.SDK.ErrorString(err)}")
             return False
 
         err = dh.show(HEDSSHF_PresentAutomatic)
         if err != HEDSERR_NoError:
             if self.verbose:
-                print(f"[SLM] Failed to show image: {HEDS.SDK.ErrorString(err)}")
+                logger.error(f"[SLM] Failed to show image: {HEDS.SDK.ErrorString(err)}")
             return False
 
         if self.verbose:
-            print(f"[SLM] Showing image: {img_path}")
+            logger.info(f"[SLM] Showing image: {img_path}")
 
         return True
 

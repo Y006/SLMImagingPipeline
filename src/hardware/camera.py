@@ -2,6 +2,7 @@
 import sys
 from ctypes import *
 from ctypes import byref, sizeof, memset, POINTER, c_ubyte, cast
+from loguru import logger
 
 from src.hardware.MvImport.MvCameraControl_class import *  # 你已确认有 SDK，这里直接使用
 
@@ -19,7 +20,7 @@ ERRMAP = {
 def explain(ret): return f"0x{ret:x} " + ERRMAP.get(ret, "（未知错误码）")
 def OK(ret, what):
     if ret != MV_OK:
-        print(f"[ERR] {what}: {explain(ret)}")
+        logger.error(f"{what}: {explain(ret)}")
         return False
     return True
 
@@ -42,10 +43,10 @@ class HikCamera:
         if not OK(MvCamera.MV_CC_EnumDevices(tlayer, device_list), "枚举设备"):
             return False
         if device_list.nDeviceNum == 0:
-            print("[ERR] 未检测到相机")
+            logger.error("未检测到相机")
             return False
         if self.dev_index >= device_list.nDeviceNum:
-            print(f"[ERR] 设备索引 {self.dev_index} 超出范围 [0,{device_list.nDeviceNum-1}]")
+            logger.error(f"设备索引 {self.dev_index} 超出范围 [0,{device_list.nDeviceNum-1}]")
             return False
 
         self.cam = MvCamera()
@@ -76,13 +77,13 @@ class HikCamera:
         返回 True/False；失败时会打印关键错误原因。
         """
         if not self.cam:
-            print("[ERR] 相机未打开")
+            logger.error("相机未打开")
             return False
 
         # 设置曝光（不同机型范围不同，如失败会打印但继续尝试抓拍）
         ret = self.cam.MV_CC_SetFloatValue("ExposureTime", float(exposure_us))
         if ret != MV_OK:
-            print(f"[WARN] 设置曝光失败（可能超范围/不支持）：{explain(ret)}  已继续使用当前曝光。")
+            logger.warning(f"设置曝光失败（可能超范围/不支持）：{explain(ret)}  已继续使用当前曝光。")
 
         if not OK(self.cam.MV_CC_StartGrabbing(), "开始取流"):
             return False
@@ -95,9 +96,9 @@ class HikCamera:
         if ret != MV_OK:
             self.cam.MV_CC_StopGrabbing()
             if ret == MV_E_TIMEOUT:
-                print(f"[ERR] 取帧超时({timeout_ms}ms)。请检查曝光/触发/带宽。")
+                logger.error(f"取帧超时({timeout_ms}ms)。请检查曝光/触发/带宽。")
             else:
-                print(f"[ERR] 取帧失败: {explain(ret)}")
+                logger.error(f"取帧失败: {explain(ret)}")
             return False
 
         # 保存（官方建议输出缓冲至少 w*h*3 + 2048）
@@ -119,9 +120,9 @@ class HikCamera:
         ret = self.cam.MV_CC_SaveImageEx2(save_param)
         if ret != MV_OK or save_param.nImageLen <= 0:
             self.cam.MV_CC_StopGrabbing()
-            print("[ERR] 保存图像失败（可能是当前像素格式不支持直接保存）。"
+            logger.error("保存图像失败（可能是当前像素格式不支持直接保存）。"
                   "可尝试改用 BMP 或先转换到 BGR8 再保存。")
-            print(f"Save ret={explain(ret)}, nImageLen={save_param.nImageLen}")
+            logger.error(f"Save ret={explain(ret)}, nImageLen={save_param.nImageLen}")
             return False
 
         try:
@@ -129,11 +130,11 @@ class HikCamera:
                 f.write(string_at(save_param.pImageBuffer, save_param.nImageLen))
             # 成功
             self.cam.MV_CC_StopGrabbing()
-            print(f"[OK] 已保存: {save_path}  尺寸: {frame_info.nWidth}x{frame_info.nHeight}")
+            logger.info(f"已保存: {save_path}  尺寸: {frame_info.nWidth}x{frame_info.nHeight}")
             return True
         except Exception as e:
             self.cam.MV_CC_StopGrabbing()
-            print(f"[ERR] 写文件失败: {e}")
+            logger.error(f"写文件失败: {e}")
             return False
 
     def close(self):
@@ -146,11 +147,11 @@ class HikCamera:
         try:
             self.cam.MV_CC_CloseDevice()
         except Exception as e:
-            print(f"[WARN] 关闭设备异常: {e}")
+            logger.warning(f"关闭设备异常: {e}")
         try:
             self.cam.MV_CC_DestroyHandle()
         except Exception as e:
-            print(f"[WARN] 销毁句柄异常: {e}")
+            logger.warning(f"销毁句柄异常: {e}")
         self.cam = None
 
 # ---- 示例 ----
@@ -161,6 +162,6 @@ if __name__ == "__main__":
             sys.exit(1)
         ok = cam.snap("capture.jpg", exposure_us=500000.0, timeout_ms=2000, img_type=MV_Image_Jpeg)
         if not ok:
-            print("[ERR] 抓拍失败")
+            logger.error("抓拍失败")
     finally:
         cam.close()

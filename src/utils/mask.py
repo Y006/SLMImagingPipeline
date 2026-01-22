@@ -32,6 +32,7 @@ from waveprop.rs import angular_spectrum
 from waveprop.noise import add_shot_noise
 import torchvision.transforms as tf
 import matplotlib.pyplot as plt
+from loguru import logger
 
 try:
     import torch
@@ -68,7 +69,7 @@ class VirtualSensor:
             pixel_size = base_size / base_resolution
 
         sensor = cls(resolution=base_resolution, size=base_size, pixel_size=pixel_size)
-        print(f"✅ 创建虚拟传感器: {sensor_name}, 分辨率={sensor.resolution}, 像素尺寸={sensor.pixel_size}")
+        logger.info(f"创建虚拟传感器: {sensor_name}, 分辨率={sensor.resolution}, 像素尺寸={sensor.pixel_size}")
         return sensor
     
 class Mask(abc.ABC):
@@ -700,11 +701,11 @@ class MultiLensArray(Mask):
                     r_placed.append(r)
                     placed = True
                     if self.verbose:
-                        print(f"Placed circle with rad {r}, and center ({x}, {y})")
+                        logger.debug(f"Placed circle with rad {r}, and center ({x}, {y})")
                     break
             if not placed:
                 if self.verbose:
-                    print(f"Failed to place circle with rad {r}")
+                    logger.debug(f"Failed to place circle with rad {r}")
                 continue
         if len(r_placed) < self.N:
             warnings.warn(f"Could not place {self.N - len(r_placed)} lenses")

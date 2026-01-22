@@ -4,6 +4,7 @@ from typing import Tuple, List
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt
+from loguru import logger
 
 # =========================
 # CONFIG：这里改成你的路径/参数
@@ -174,7 +175,7 @@ def plot_mtfs(paths: List[str],
     plt.axvline(nyq, linestyle="--", linewidth=1.0)  # 标出奈奎斯特
     plt.tight_layout()
     plt.savefig(out, bbox_inches="tight")
-    print(f"Saved: {out}")
+    logger.info(f"Saved: {out}")
     plt.show()
 
 

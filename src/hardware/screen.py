@@ -4,6 +4,7 @@ from PIL.Image import Resampling
 from screeninfo import get_monitors
 import time
 import os
+from loguru import logger
 
 class Screen:
     def __init__(self, monitor_index: int = 0, bg: str = "black"):
@@ -66,11 +67,11 @@ class Screen:
             self._tkimg = ImageTk.PhotoImage(canvas_image)
             self.canvas.create_image(w // 2, h // 2, image=self._tkimg, anchor="center")
 
-            print(f"[INFO] 成功显示: {img_path}")
-            print(f"原始尺寸: {in_w}x{in_h}, 缩放后的尺寸: {new_w}x{new_h}")
+            logger.info(f"成功显示: {img_path}")
+            logger.info(f"原始尺寸: {in_w}x{in_h}, 缩放后的尺寸: {new_w}x{new_h}")
             return True
         except Exception as e:
-            print(f"[ERROR] 显示失败: {img_path}, 错误: {e}")
+            logger.error(f"显示失败: {img_path}, 错误: {e}")
             return False
 
     def show_image_at(self, img_path: str, position: tuple, scale_factor: float = 1.0) -> bool:
@@ -103,11 +104,11 @@ class Screen:
             self._tkimg = ImageTk.PhotoImage(canvas_image)
             self.canvas.create_image(w // 2, h // 2, image=self._tkimg, anchor="center")
 
-            print(f"[INFO] 成功显示: {img_path}")
-            print(f"原始尺寸: {in_w}x{in_h}, 缩放后的尺寸: {new_w}x{new_h}, 显示位置: {position}")
+            logger.info(f"成功显示: {img_path}")
+            logger.info(f"原始尺寸: {in_w}x{in_h}, 缩放后的尺寸: {new_w}x{new_h}, 显示位置: {position}")
             return True
         except Exception as e:
-            print(f"[ERROR] 显示失败: {img_path}, 错误: {e}")
+            logger.error(f"显示失败: {img_path}, 错误: {e}")
             return False
 
     def start(self):
@@ -128,13 +129,13 @@ def display_image(display_image_path, monitor_idx, scale_factor):
         
         # 显示图像（请确保图像路径正确）
         if not os.path.exists(display_image_path):
-            print("[ERR] 显示器图片路径无效")
+            logger.error("显示器图片路径无效")
             exit(3)
         
         scr.show_image(display_image_path, scale_factor)
         scr.start()  # 启动 Tkinter 事件循环
     except Exception as e:
-        print(f"[ERROR] 显示图像时出错: {e}")
+        logger.error(f"显示图像时出错: {e}")
 
 
 def main():
@@ -145,10 +146,10 @@ def main():
     success = screen.show_image(img_path1, scale_factor)
     if success:
         screen.root.update()  # 强制刷新窗口
-        print("[INFO] 第一张图像已显示，开始事件循环...")
+        logger.info("第一张图像已显示，开始事件循环...")
         # time.sleep(50000)
     else:
-        print("[ERROR] 显示第一张图像失败")
+        logger.error("显示第一张图像失败")
 
     # img_path2 = r"D:\Lzy\dataset\dogvscat v2\1.png"
     # success = screen.show_image(img_path2, scale_factor)
@@ -167,10 +168,10 @@ def main():
     success = screen.show_image_at(img_path3, position, scale_factor)
 
     if success:
-        print("[INFO] 第三张图像已显示，开始事件循环...")
+        logger.info("第三张图像已显示，开始事件循环...")
         screen.start()  # 进入事件循环，保持显示
     else:
-        print("[ERROR] 显示第三张图像失败")
+        logger.error("显示第三张图像失败")
 
 
 

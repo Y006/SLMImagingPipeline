@@ -2,6 +2,7 @@ import numpy as np
 import cv2
 import os
 import matplotlib.pyplot as plt
+from loguru import logger
 
 def calculate_tamura_coefficient(image):
     # 确保输入图像是灰度图像
@@ -38,7 +39,7 @@ if os.path.isdir(input_path):  # 输入是文件夹
     
     # 打印所有图像的Tamura系数
     for idx, tc in enumerate(tc_values):
-        print(f"Image {idx + 1} Tamura Coefficient: {tc}")
+        logger.info(f"Image {idx + 1} Tamura Coefficient: {tc}")
     
     # 绘制Tamura系数的曲线图
     plt.plot(tc_values, marker='o', linestyle='-', color='b')
@@ -52,9 +53,9 @@ elif os.path.isfile(input_path):  # 输入是单个文件
     image = cv2.imread(input_path)
     if image is not None:
         tc = calculate_tamura_coefficient(image)
-        print(f"Tamura Coefficient for the input image: {tc}")
+        logger.info(f"Tamura Coefficient for the input image: {tc}")
     else:
-        print("Failed to read the image.")
+        logger.error("Failed to read the image.")
 
 else:
-    print("The specified path is neither a file nor a folder.")
+    logger.error("The specified path is neither a file nor a folder.")

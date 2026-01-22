@@ -2,6 +2,7 @@ import os
 import time
 import yaml
 import threading
+from loguru import logger
 from src.hardware.screen import display_image
 from src.hardware.slm import SLM
 from src.hardware.camera import HikCamera
@@ -41,7 +42,7 @@ def main():
             cam = HikCamera(dev_index=0)
             timeout_ms = 3000
             if not cam.open():
-                print("[ERR] 相机打开失败")
+                logger.error("相机打开失败")
                 exit(2)
     
     # 生成任务 ID
@@ -49,7 +50,7 @@ def main():
 
     # 运行设备
         if use_display:
-            print("[INFO] 启动显示器显示线程")
+            logger.info("启动显示器显示线程")
             display_thread = threading.Thread(
                 target=display_image,
                 args=(
@@ -64,14 +65,14 @@ def main():
 
         if use_slm:
             if not os.path.exists(config["capture_settings"]["slm_image_path"]):
-                print("[ERR] SLM图片路径无效")
+                logger.error("SLM图片路径无效")
                 exit(4)
             slm.img_show(config["capture_settings"]["slm_image_path"])
             time.sleep(settle_ms / 1000.0)
 
         if config["task"]["mode"] == "calibration":
-            print("[INFO] 进入标定模式，保持显示器和SLM显示，按 Ctrl+C 退出或等待1000秒后自动退出")
-            print("[INFO] calibration 模式：不写 run.yaml 日志")
+            logger.info("进入标定模式，保持显示器和SLM显示，按 Ctrl+C 退出或等待1000秒后自动退出")
+            logger.info("calibration 模式：不写 run.yaml 日志")
             time.sleep(10000)   # 保持足够时间用于手动对焦等操作
             return
 
@@ -89,11 +90,11 @@ def main():
             if ok:
                 captured = str(out_path)
                 if config["task"]["mode"] == "capture_psf":
-                    print(f"[OK] PSF 拍摄成功!")
+                    logger.info(f"PSF 拍摄成功!")
                 if config["task"]["mode"] == "capture_measurement":
-                    print(f"[OK] Measurement 拍摄成功!")
+                    logger.info(f"Measurement 拍摄成功!")
             else:
-                print("[ERR] 拍摄失败！")
+                logger.error("拍摄失败！")
     
     # 写入 run.yaml
         entry_key = f"task_{code4}"
@@ -110,7 +111,7 @@ def main():
             else: entry_val["measurement_path"] = captured
         append_log(run_data, {entry_key: entry_val})
         write_run_yaml(run_path, run_data)
-        print(f"[OK] wrote {run_path}")
+        logger.info(f"wrote {run_path}")
 
     finally:
         if use_camera:

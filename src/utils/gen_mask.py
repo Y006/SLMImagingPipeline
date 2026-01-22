@@ -3,6 +3,7 @@ import sys
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
+from loguru import logger
 from mask import (
     CodedAperture,
     MultiLensArray,
@@ -23,9 +24,9 @@ def generate_mask(mask_type, out_dir, **kwargs):
     """根据 mask_type 创建对应的掩膜，并保存 PNG"""
 
     if not os.path.exists(out_dir):
-        print(f"❌ 错误：输出目录不存在：{out_dir}")
+        logger.error(f"错误：输出目录不存在：{out_dir}")
         sys.exit(1)
-    print(f"✅ 输出目录存在：{out_dir}")
+    logger.info(f"输出目录存在：{out_dir}")
 
     mask_type = mask_type.lower()
 
@@ -99,7 +100,7 @@ def generate_mask(mask_type, out_dir, **kwargs):
     png_path = os.path.join(out_dir, filename)
 
     plt.imsave(png_path, mask_u8, cmap="gray", vmin=0, vmax=255)
-    print(f"✅ 已保存 {mask_type} 掩膜: {png_path}")
+    logger.info(f"已保存 {mask_type} 掩膜: {png_path}")
 
     # ---- 可视化 ----
     plt.figure(figsize=(8, 6), dpi=150)

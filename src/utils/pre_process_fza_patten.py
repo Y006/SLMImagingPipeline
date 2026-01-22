@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from loguru import logger
 # ========= 参数区：按需修改 =========
 FOLDER = r"D:\qjy\camera_slm_pipeline\data\fza_bin_gen"  # 输入图片文件夹路径
 RADIUS = 40                      # 圆半径（像素）
@@ -61,7 +62,7 @@ for p in files:
 
         out_img.save(out_path, **save_kwargs)
 
-print("处理完成！")
-print(f"输入目录：{folder}")
-print(f"输出目录：{out_dir}")
-print(f"图像尺寸：{W}x{H}，圆心：({cx},{cy})，半径：{RADIUS}，圆外填充值：{FILL_VALUE}")
+logger.info("处理完成！")
+logger.info(f"输入目录：{folder}")
+logger.info(f"输出目录：{out_dir}")
+logger.info(f"图像尺寸：{W}x{H}，圆心：({cx},{cy})，半径：{RADIUS}，圆外填充值：{FILL_VALUE}")

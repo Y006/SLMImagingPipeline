@@ -4,6 +4,7 @@ from typing import Dict, List
 import numpy as np
 from skimage import io, transform
 import matplotlib.pyplot as plt
+from loguru import logger
 
 def collect_images(folder: str) -> Dict[str, List[str]]:
     """
@@ -29,15 +30,16 @@ def collect_images(folder: str) -> Dict[str, List[str]]:
 
     n = len(images)
     if n == 0:
-        log = f"[LOG] 在 {folder} 内未找到任何图片文件。"
+        log = f"在 {folder} 内未找到任何图片文件。"
+        logger.warning(log)
     else:
         preview = images[:3] + (["..."] if n > 6 else []) + images[-3:]
         log = (
-            f"[LOG] 扫描完成: 共找到 {n} 张图片\n"
+            f"扫描完成: 共找到 {n} 张图片\n"
             f"       目录: {folder}\n"
             f"       示例文件:\n         " + "\n         ".join(preview)
         )
-    print(log)
+        logger.info(log)
 
     return {"images": images}
 
@@ -178,7 +180,7 @@ def save_reconstruction_image(reconstruction, save_path=None):
     """
     # --- 检查输入 ---
     if reconstruction is None:
-        print("[Warning] Reconstruction is None, nothing to save.")
+        logger.warning("Reconstruction is None, nothing to save.")
         return
 
     # --- 归一化到 [0, 1] ---
@@ -186,7 +188,7 @@ def save_reconstruction_image(reconstruction, save_path=None):
 
     # --- 如果没有指定保存路径 ---
     if save_path is None:
-        print("[Info] No save path provided — image will not be saved.")
+        logger.info("No save path provided — image will not be saved.")
         return
 
     # --- 确保目录存在 ---
@@ -201,7 +203,7 @@ def save_reconstruction_image(reconstruction, save_path=None):
     else:
         raise ValueError(f"Unsupported reconstruction shape: {reconstruction.shape}")
 
-    print(f"[Saved] Reconstruction image saved to: {save_path}")
+    logger.info(f"Reconstruction image saved to: {save_path}")
 
 def save_all_images(
     psf,
@@ -230,7 +232,7 @@ def save_all_images(
 
     # === 情况1：没有给出保存目录 ===
     if save_dir is None:
-        print("[Info] No save directory provided — images will not be saved.")
+        logger.info("No save directory provided — images will not be saved.")
         return
 
     # === 情况2：确保目录存在 ===
@@ -249,11 +251,11 @@ def save_all_images(
     # === 定义辅助函数（单张图保存） ===
     def _save_img(img, path, label):
         if img is None:
-            print(f"[Skip] {label} is None, not saving.")
+            logger.debug(f"{label} is None, not saving.")
             return
         img_norm = np.clip(img / np.max(np.abs(img)), 0, 1)
         io.imsave(path, (img_norm * 255).astype(np.uint8))
-        print(f"[Saved] {label} saved to: {path}")
+        logger.info(f"{label} saved to: {path}")
 
     # === Ground Truth (可选) ===
     if ground_truth is not None:
