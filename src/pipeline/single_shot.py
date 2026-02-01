@@ -80,12 +80,12 @@ def main():
         if use_camera and kind in ("psf", "m"):
             num_width = 3   # 保存图片的编号位数
             file_prefix = generate_file_prefix(kind, run_data, num_width)
-            out_path = proj_dir / f"{file_prefix}-{code4}.jpg"
+            out_path = proj_dir / f"{file_prefix}-{code4}.bmp"
             ok = cam.snap(
                 out_path,
                 exposure_us=config["capture_settings"]["exposure_us"],
                 timeout_ms=timeout_ms,
-                img_type=MV_Image_Jpeg
+                img_type=MV_Image_Bmp
             )
             if ok:
                 captured = str(out_path)
