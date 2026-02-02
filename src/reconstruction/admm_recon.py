@@ -1,6 +1,8 @@
+import os
 import torch
 import numpy as np
 from loguru import logger
+from src.utils.fn import *
 
 # ================================
 # 基础图像操作
@@ -396,4 +398,210 @@ class ADMM_Net(torch.nn.Module):
         logger.info(f"[ADMM_Net.forward] 重建完成！总迭代次数:{self.iterations}, 最终输出形状:{x_outn.shape}")
         return x_outn
 
+# ================================
+# ADMM 重建管道类
+# ================================
+class ADMMReconstructionPipeline:
+    """
+    ADMM 重建管道，集成加载、下采样、重建、可视化和保存功能。
+    """
+    def __init__(self, config=None, 
+                 psf_path=None, 
+                 measurement_path=None, 
+                 downsample=16, 
+                 iterations=400,
+                 mu1_init=1e-4, 
+                 mu2_init=1e-4, 
+                 mu3_init=1e-4, 
+                 tau_init=2.0,
+                 ground_truth_file=None,
+                 save_dir=None,
+                 save_name=None,
+                 device='cuda:0'):
+        """
+        初始化 ADMM 重建管道。
+        
+        Args:
+            config (dict): 配置字典，优先从此读取参数
+            psf_path (str): PSF 图像路径
+            measurement_path (str): 测量图像路径
+            downsample (int): 下采样倍数
+            iterations (int): ADMM 迭代次数
+            mu1_init, mu2_init, mu3_init, tau_init: ADMM 超参数
+            ground_truth_file (str): 真值图像路径 (可选)
+            save_dir (str): 保存目录 (None 表示不保存)
+            save_name (dict): 保存文件名字典
+            device (str): 计算设备
+        """
+        # 优先从 config 读取参数，否则使用传入的参数
+        if config:
+            self.psf_path = config.get('psf_path', psf_path)
+            self.measurement_path = config.get('measurement_path', measurement_path)
+            self.downsample = config.get('downsample', downsample)
+            self.iterations = config.get('iterations', iterations)
+            self.mu1_init = config.get('mu1_init', mu1_init)
+            self.mu2_init = config.get('mu2_init', mu2_init)
+            self.mu3_init = config.get('mu3_init', mu3_init)
+            self.tau_init = config.get('tau_init', tau_init)
+            self.ground_truth_file = config.get('ground_truth_file', ground_truth_file)
+            self.save_dir = config.get('save_dir', save_dir)
+            self.save_name = config.get('save_name', save_name)
+            self.device = config.get('device', device)
+        else:
+            self.psf_path = psf_path
+            self.measurement_path = measurement_path
+            self.downsample = downsample
+            self.iterations = iterations
+            self.mu1_init = mu1_init
+            self.mu2_init = mu2_init
+            self.mu3_init = mu3_init
+            self.tau_init = tau_init
+            self.ground_truth_file = ground_truth_file
+            self.save_dir = save_dir
+            self.save_name = save_name or {
+                "gt": "gt.png",
+                "psf": "psf.png",
+                "meas": "m.png",
+                "recon": "r.png"
+            }
+            self.device = device if torch.cuda.is_available() else 'cpu'
+        
+        # 环境变量设置
+        os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+        
+        logger.info(f'[ADMMReconstructionPipeline] 使用设备: {self.device}')
+        logger.info(f'[ADMMReconstructionPipeline] PSF路径: {self.psf_path}')
+        logger.info(f'[ADMMReconstructionPipeline] 测量图像路径: {self.measurement_path}')
+        logger.info(f'[ADMMReconstructionPipeline] 下采样倍数: {self.downsample}')
+        logger.info(f'[ADMMReconstructionPipeline] 迭代次数: {self.iterations}')
+        
+        # 存储结果
+        self.psf_resized = None
+        self.measurement_resized = None
+        self.reconstruction = None
+        self.admm_net = None
+    
+    def load_and_preprocess(self):
+        """加载并预处理 PSF 和测量图像"""
+        logger.info("[ADMMReconstructionPipeline] 开始加载和预处理图像...")
+        
+        # 加载 PSF
+        self.psf_resized = load_and_downsample_normal2_image(
+            self.psf_path,
+            downsample=self.downsample,
+            mode="gray",
+            remove_bg=True,
+            normalize=True,
+            visualize=False
+        )
+        
+        # 加载测量图像
+        self.measurement_resized = load_and_downsample_normal2_image(
+            self.measurement_path,
+            downsample=self.downsample,
+            mode="rgb",
+            remove_bg=False,
+            normalize=True,
+            visualize=False
+        )
+        self.measurement_resized = self.measurement_resized.transpose((2, 0, 1))  # 转为 (C, H, W)
+        
+        logger.info(f"PSF: shape={self.psf_resized.shape}, dtype={self.psf_resized.dtype}, "
+                   f"min={self.psf_resized.min():.3f}, max={self.psf_resized.max():.3f}")
+        logger.info(f"Measurement: shape={self.measurement_resized.shape}, dtype={self.measurement_resized.dtype}, "
+                   f"min={self.measurement_resized.min():.3f}, max={self.measurement_resized.max():.3f}")
+    
+    def build_model(self):
+        """构建 ADMM 网络模型"""
+        logger.info("[ADMMReconstructionPipeline] 构建 ADMM 网络...")
+        
+        self.admm_net = ADMM_Net(
+            self.psf_resized,
+            iterations=self.iterations,
+            cuda_device=self.device,
+            mu1_init=self.mu1_init,
+            mu2_init=self.mu2_init,
+            mu3_init=self.mu3_init,
+            tau_init=self.tau_init
+        )
+        self.admm_net.to(self.device)
+        self.admm_net.eval()
+        
+        logger.info("[ADMMReconstructionPipeline] ADMM 网络构建完成")
+    
+    def reconstruct(self):
+        """执行重建"""
+        logger.info("[ADMMReconstructionPipeline] 开始重建...")
+        
+        # 准备输入
+        input_tensor = (
+            torch.from_numpy(self.measurement_resized.copy())
+            .float()
+            .unsqueeze(0)
+            .to(self.device)
+        )
+        
+        logger.info(f"输入张量: shape={input_tensor.shape}, dtype={input_tensor.dtype}, "
+                   f"min={input_tensor.min():.3f}, max={input_tensor.max():.3f}")
+        
+        # 推理
+        with torch.no_grad():
+            output_tensor = self.admm_net(input_tensor)
+        
+        logger.info(f"输出张量: shape={output_tensor.shape}, dtype={output_tensor.dtype}, "
+                   f"min={output_tensor.min():.3f}, max={output_tensor.max():.3f}")
+        
+        # 转为 numpy
+        self.reconstruction = output_tensor[0].cpu().numpy().transpose(1, 2, 0)
+        
+        logger.info("[ADMMReconstructionPipeline] 重建完成")
+    
+    def visualize(self):
+        """可视化结果"""
+        logger.info("[ADMMReconstructionPipeline] 可视化结果...")
+        
+        visualize_reconstruction(
+            psf_resized=self.psf_resized,
+            measurement_resized=np.clip(self.measurement_resized.transpose(1, 2, 0) / self.measurement_resized.max(), 0, 1),
+            reconstruction=self.reconstruction,
+            ground_truth_file=self.ground_truth_file,
+            iterations=self.iterations
+        )
+    
+    def save_results(self):
+        """保存结果"""
+        if self.save_dir is None:
+            logger.info("[ADMMReconstructionPipeline] save_dir 为 None，跳过保存")
+            return
+        
+        logger.info(f"[ADMMReconstructionPipeline] 保存结果到: {self.save_dir}")
+        
+        save_all_images(
+            psf=self.psf_resized,
+            measurement=np.clip(self.measurement_resized.transpose(1, 2, 0) / self.measurement_resized.max(), 0, 1),
+            reconstruction=self.reconstruction,
+            ground_truth=self.ground_truth_file,
+            save_dir=self.save_dir,
+            filenames=self.save_name
+        )
+        
+        logger.info("[ADMMReconstructionPipeline] 保存完成")
+    
+    def run(self):
+        """运行完整的重建管道"""
+        logger.info("=" * 60)
+        logger.info("[ADMMReconstructionPipeline] 开始完整重建流程")
+        logger.info("=" * 60)
+        
+        self.load_and_preprocess()
+        self.build_model()
+        self.reconstruct()
+        self.visualize()
+        self.save_results()
+        
+        logger.info("=" * 60)
+        logger.info("[ADMMReconstructionPipeline] 重建流程完成")
+        logger.info("=" * 60)
+        
+        return self.reconstruction
 

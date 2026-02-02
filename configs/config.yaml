@@ -1,0 +1,48 @@
+project:
+  id: 2026-02-02-exp003
+  root_dir: "./output"
+  description: "测试代码"
+
+capture_settings:
+  exposure_us: 104546.0000
+  monitor_idx: 1
+  scale_factor: 0.2
+  display_position:    # 功能需要在代码里面修改以启用
+  display_image_path: "data/example/分辨率测试卡.jpg"
+  slm_image_path: "data/example/分辨率测试卡.jpg"
+
+physical_setup:
+  object_name: "扑克牌"
+  brightness: 4060
+  sensor_mask_distance: "未测量"
+  mask_object_distance: "6*2.5cm"
+  point_light_brightness: 4010
+  mask_LED-light_distance: "6*2.5cm"
+
+reconstruction:
+  # 输入文件路径
+  psf_path: "/Users/qiujinyu/Computational_Imaging/技术路线/SLMImagingPipeline/output/2025-10-21-exp001/001-psf-EnrF.jpg"
+  measurement_path: "/Users/qiujinyu/Computational_Imaging/技术路线/SLMImagingPipeline/output/2025-10-21-exp001/007-m-2xbq.jpg"
+  ground_truth_file: null  # 设置为 null 的时候不显示真值
+  
+  # 图像处理参数
+  downsample: 16  # 下采样倍数
+  
+  # ADMM 算法参数
+  iterations: 400  # 迭代次数
+  mu1_init: 1.0e-4  # ADMM 参数 mu1 初始值
+  mu2_init: 1.0e-4  # ADMM 参数 mu2 初始值
+  mu3_init: 1.0e-4  # ADMM 参数 mu3 初始值
+  tau_init: 2.0     # soft-thresholding 阈值初始值
+  
+  # 保存设置
+  save_dir: null  # 设置为 null 的时候不保存
+  save_name:
+    gt: "gt.png"
+    psf: "psf.png"
+    meas: "m.png"
+    recon: "r2.png"
+  
+  # 计算设备
+  device: "cuda:0"  # 或 "cpu"
+  
