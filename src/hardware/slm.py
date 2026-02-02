@@ -39,6 +39,8 @@ class SLM:
 
         if self.verbose:
             logger.info("[SLM] Device opened successfully.")
+        
+        return True
 
     def img_show(self, img_path: str) -> bool:
         """将传入路径的图片显示到 SLM，返回是否成功"""
