@@ -228,7 +228,7 @@ def start_screen_pro_display(screen_pro_config: dict) -> object:
             raise typer.Exit(1)
         
         # 刷新显示
-        screen.update()
+        screen.root.update()
         
         logger.success(f"ScreenPro 已启动 (显示器 {monitor_idx})")
         return screen

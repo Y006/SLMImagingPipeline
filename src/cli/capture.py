@@ -14,7 +14,7 @@ from pathlib import Path
 from loguru import logger
 import typer
 
-from .utils import load_context, save_meta_image, get_next_sequence_number
+from .utils import load_context, save_meta_image, get_next_sequence_number, start_screen_pro_display
 
 # # 仿真硬件接口（用于测试）
 # from src.hardware.mock_hardware import (
@@ -376,17 +376,6 @@ def run_measurement_logic_new(config_path: str, repeat: int, note: str):
             )
             t.start()
             time.sleep(0.5)
-
-        # --- 3. 初始化 SLM ---
-        
-        logger.info(f"正在显示图片: {disp_path.name} (显示器 {mon_idx})")
-        t = threading.Thread(
-            target=display_image,
-            args=(str(disp_path), mon_idx, scale_f),
-            daemon=True
-        )
-        t.start()
-        time.sleep(0.5)
 
         # --- 3. 初始化 SLM ---
         slm = SLM(verbose=True)

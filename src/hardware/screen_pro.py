@@ -339,9 +339,11 @@ class ScreenPro:
             # 创建背景画布
             canvas_img = Image.new("RGB", (self.screen_width, self.screen_height), self.bg)
             
-            # 计算像素位置
-            pos_x_px = self.cm_to_pixels(position_cm[0])
-            pos_y_px = self.cm_to_pixels(position_cm[1])
+            # 计算像素位置（处理 None 值，默认为 0）
+            pos_x_cm = position_cm[0] if position_cm[0] is not None else 0
+            pos_y_cm = position_cm[1] if position_cm[1] is not None else 0
+            pos_x_px = self.cm_to_pixels(pos_x_cm)
+            pos_y_px = self.cm_to_pixels(pos_y_cm)
             
             # 粘贴图像（左上角对齐）
             canvas_img.paste(pil_img, (pos_x_px, pos_y_px))

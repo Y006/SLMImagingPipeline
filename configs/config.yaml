@@ -14,8 +14,8 @@ capture_settings:
     background_color: "black"
     force_ppc: 56.34
     image_path: "data/example/usaf_1951_resolution_test_chart.jpg"  # 支持相对或绝对路径
-    position_cm: [5.0, None] 
-    size_cm: [4.0, 6.0]     # 模式1: 强制物理尺寸 (10x10cm)
+    position_cm: [5.0, 5.0]  # 图像左上角位置（厘米）
+    size_cm: [4.0, null]      # 强制物理尺寸 (4x6cm)
   slm_image_path: "data/example/usaf_1951_resolution_test_chart.jpg"
 
 physical_setup:
