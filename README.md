@@ -16,16 +16,17 @@ uv sync
 
 # 激活虚拟环境
 source .venv/bin/activate  # macOS/Linux
-# 或在 Windows 上
-.venv\Scripts\activate
+.venv\Scripts\activate  # Windows
 ```
 
 ### 2. 运行 CLI 命令
 
-所有操作通过命令行界面完成，以下是常用命令：
+所有操作通过命令行界面完成，以下是部分常用命令：
 
 #### 数据采集
 ```bash
+python cli.py --help
+
 # 采集 PSF（点扩展函数）
 python cli.py capture-psf --config configs/single_shot_config.yaml --repeat 3
 
@@ -34,16 +35,10 @@ python cli.py capture-measurement --config configs/single_shot_config.yaml --rep
 
 # 系统标定/预览
 python cli.py calibrate --config configs/single_shot_config.yaml
-```
 
-#### 工具命令
-```bash
 # 查看 PNG 图片中嵌入的实验元数据
 python cli.py inspect path/to/image.png
-```
 
-#### 图像重建
-```bash
 # ADMM 算法重建
 python cli.py admm --config configs/single_shot_config.yaml --note "测试运行"
 
@@ -51,27 +46,9 @@ python cli.py admm --config configs/single_shot_config.yaml --note "测试运行
 python cli.py wiener --config configs/single_shot_config.yaml
 ```
 
-#### 查看所有命令
-```bash
-python cli.py --help
-```
-
 ### 3. 配置说明
 
-所有参数通过 `configs/single_shot_config.yaml` 配置：
-
-```yaml
-project:
-  id: 2026-02-02-exp003          # 实验 ID
-  root_dir: "./output"            # 输出目录
-
-reconstruction:
-  psf_path: "path/to/psf.jpg"    # PSF 图像路径
-  measurement_path: "path/to/m.jpg"  # 测量图像路径
-  downsample: 16                  # 下采样倍数
-  iterations: 400                 # ADMM 迭代次数
-  device: "cuda:0"                # 计算设备（"cpu" 或 "cuda:0"）
-```
+所有参数通过 `configs/single_shot_config.yaml` 配置。
 
 ### 4. 输出结果
 
