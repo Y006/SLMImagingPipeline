@@ -16,13 +16,18 @@ import typer
 
 from .utils import load_context, save_meta_image, get_next_sequence_number
 
-# 硬件驱动导入
-from src.hardware.mock_hardware import (
-    MockSLM as SLM,
-    MockHikCamera as HikCamera,
-    mock_display_image as display_image,
-    MV_Image_Bmp
-)
+# # 仿真硬件接口（用于测试）
+# from src.hardware.mock_hardware import (
+#     MockSLM as SLM,
+#     MockHikCamera as HikCamera,
+#     mock_display_image as display_image,
+#     MV_Image_Bmp
+# )
+
+# 真实硬件接口
+from src.hardware.camera import HikCamera, MV_Image_Bmp
+from src.hardware.slm import SLM
+from src.hardware.screen import display_image
 
 
 def run_psf_logic(config_path: str, repeat: int, note: str):

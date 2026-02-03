@@ -56,3 +56,22 @@ python cli.py wiener --config configs/single_shot_config.yaml
 - 原始采集数据保存为 PNG，并嵌入实验元数据
 - 重建结果同样包含完整的配置和参数记录
 - 可通过 `inspect` 命令查看嵌入的元数据
+
+### 注意：
+
+当没有硬件时，可以通过调整 `src/cli/capture.py` 里面的内容进行测试：
+
+```python
+# # 仿真硬件接口（用于测试）
+# from src.hardware.mock_hardware import (
+#     MockSLM as SLM,
+#     MockHikCamera as HikCamera,
+#     mock_display_image as display_image,
+#     MV_Image_Bmp
+# )
+
+# 真实硬件接口
+from src.hardware.camera import HikCamera, MV_Image_Bmp
+from src.hardware.slm import SLM
+from src.hardware.screen import display_image
+```
