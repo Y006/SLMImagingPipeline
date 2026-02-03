@@ -10,7 +10,10 @@ from src.cli import (
     run_calibration_logic,
     inspect_png_meta,
     run_admm_logic,
-    run_wiener_logic
+    run_wiener_logic,
+    run_screen_calibration,
+    run_measurement_logic_new,
+    run_calibration_logic_new
 )
 
 DEFAULT_CONFIG_PATH = "configs/config.yaml"
@@ -58,7 +61,8 @@ def capture_measurement(
     note: str = typer.Option("", "--note", "-n")
 ):
     """[bold yellow](缩写: meas)[/bold yellow] [cyan][数据采集][/cyan] 采集测量数据"""
-    run_measurement_logic(config, repeat, note)
+    # run_measurement_logic(config, repeat, note)
+    run_measurement_logic_new(config, repeat, note)
 
 
 @app.command(name="sys_cal", hidden=True)
@@ -67,7 +71,8 @@ def calibrate(
     config: str = typer.Option(DEFAULT_CONFIG_PATH, "--config", "-c")
 ):
     """[bold yellow](缩写: sys_cal)[/bold yellow]  [cyan][辅助工具][/cyan] 系统标定：加载 SLM 和显示器场景图片，便于用相机软件进行预览"""
-    run_calibration_logic(config)
+    # run_calibration_logic(config)
+    run_calibration_logic_new(config)
 
 
 @app.command(name="ins", hidden=True)
@@ -100,9 +105,12 @@ def wiener(
 
 @app.command(name="screen_cal", hidden=True)
 @app.command(name="screen_calibrate")
-def screen_calibrate():
-    """[bold yellow](缩写: screen_cal)[/bold yellow]   [cyan][辅助工具][/cyan] 屏幕标定：用于计算屏幕的物理尺寸（TODO）"""
-    logger.info("屏幕标定功能尚在开发中.")
+def screen_calibrate(
+    monitor: int = typer.Option(0, "--monitor", "-m", help="显示器索引（默认为 0）"),
+    ppc: float = typer.Option(None, "--ppc", "-p", help="直接设置 PPC 值（像素/厘米），不提供则启动交互式校准")
+):
+    """[bold yellow](缩写: screen_cal)[/bold yellow]   [cyan][辅助工具][/cyan] 屏幕标定：用于计算屏幕的物理尺寸"""
+    run_screen_calibration(monitor_index=monitor, set_ppc=ppc)
 
 
 @app.command(name="mask_gen", hidden=True)

@@ -128,3 +128,115 @@ def get_next_sequence_number(save_dir: Path, prefix: str = "psf") -> int:
     
     logger.debug(f"[编号扫描] 目录: {save_dir}, 前缀: {prefix}, 最大编号: {max_num}")
     return max_num + 1
+
+
+def run_screen_calibration(monitor_index: int = 0, set_ppc: float = None):
+    """
+    运行屏幕校准流程
+    
+    Args:
+        monitor_index: 显示器索引（默认为 0）
+        set_ppc: 如果提供，直接设置 PPC 值而不启动交互式校准
+    """
+    from src.hardware.screen_pro import ScreenPro
+    
+    try:
+        logger.info(f"正在为显示器 [{monitor_index}] 进行校准...")
+        
+        if set_ppc is not None:
+            # 方式 1: 直接设置 PPC
+            if set_ppc <= 0:
+                logger.error("PPC 值必须大于 0")
+                raise typer.Exit(1)
+            
+            screen = ScreenPro(monitor_index=monitor_index, bg="black")
+            screen.set_ppc(set_ppc)
+            logger.success(f"✓ PPC 已设置为: {set_ppc:.2f} 像素/厘米")
+            logger.info(f"校准数据已保存，下次使用时将自动加载")
+            screen.close()
+        else:
+            # 方式 2: 交互式校准
+            screen = ScreenPro(monitor_index=monitor_index, bg="black")
+            ppc = screen.calibrate_manual()
+            logger.success(f"✓ 校准完成！PPC = {ppc:.2f} 像素/厘米")
+            logger.info(f"校准数据已保存，下次使用时将自动加载")
+            
+    except RuntimeError as e:
+        logger.error(f"校准失败: {e}")
+        raise typer.Exit(1)
+    except Exception as e:
+        logger.error(f"发生错误: {e}")
+        raise typer.Exit(1)
+
+
+def start_screen_pro_display(screen_pro_config: dict) -> object:
+    """
+    根据配置启动 ScreenPro 显示
+    
+    Args:
+        screen_pro_config: screen_pro 配置字典，包含以下字段：
+            - monitor_idx: 显示器索引
+            - background_color: 背景颜色
+            - force_ppc: 强制使用的 PPC 值（可选）
+            - image_path: 图像路径
+            - position_cm: 物理位置 [x, y]（厘米）
+            - size_cm: 物理尺寸 [w, h]（厘米）
+    
+    Returns:
+        ScreenPro 实例
+    """
+    from src.hardware.screen_pro import ScreenPro
+    
+    # 提取配置
+    monitor_idx = screen_pro_config.get("monitor_idx", 0)
+    bg_color = screen_pro_config.get("background_color", "black")
+    force_ppc = screen_pro_config.get("force_ppc")
+    img_path = screen_pro_config.get("image_path")
+    position_cm = screen_pro_config.get("position_cm", [0, 0])
+    size_cm = screen_pro_config.get("size_cm", [None, None])
+    
+    # 处理路径
+    if img_path:
+        img_path = Path(img_path)
+        if not img_path.is_absolute():
+            img_path = Path.cwd() / img_path
+        if not img_path.exists():
+            logger.error(f"ScreenPro 图像路径不存在: {img_path}")
+            raise typer.Exit(1)
+    else:
+        logger.error("ScreenPro 配置缺少 image_path")
+        raise typer.Exit(1)
+    
+    try:
+        # 初始化 ScreenPro
+        screen = ScreenPro(monitor_index=monitor_idx, bg=bg_color)
+        
+        # 如果配置了强制 PPC，覆盖校准值
+        if force_ppc is not None and force_ppc > 0:
+            logger.info(f"使用强制 PPC 值: {force_ppc:.2f} 像素/厘米")
+            screen.ppc = force_ppc
+        
+        # 显示图像
+        success = screen.display_image(
+            img_path=str(img_path),
+            position_cm=tuple(position_cm),
+            size_cm=tuple(size_cm)
+        )
+        
+        if not success:
+            logger.error("ScreenPro 显示图像失败")
+            raise typer.Exit(1)
+        
+        # 刷新显示
+        screen.update()
+        
+        logger.success(f"ScreenPro 已启动 (显示器 {monitor_idx})")
+        return screen
+        
+    except RuntimeError as e:
+        logger.error(f"ScreenPro 启动失败: {e}")
+        logger.info("提示: 如果未校准，请先运行 'python cli.py screen_calibrate'")
+        raise typer.Exit(1)
+    except Exception as e:
+        logger.error(f"ScreenPro 发生错误: {e}")
+        raise typer.Exit(1)

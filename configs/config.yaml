@@ -9,6 +9,14 @@ capture_settings:
   scale_factor: 0.2
   display_position:    # 功能需要在代码里面修改以启用
   display_image_path: "data/example/usaf_1951_resolution_test_chart.jpg"
+  screen_pro:
+    monitor_idx: 1
+    background_color: "black"
+    force_ppc: 42.5
+    name: "示例任务1_强制变形"
+    image_path: "./assets/demo.jpg"  # 支持相对或绝对路径
+    position_cm: [5.0, 5.0] 
+    size_cm: [10.0, 10.0]     # 模式1: 强制物理尺寸 (10x10cm)
   slm_image_path: "data/example/usaf_1951_resolution_test_chart.jpg"
 
 physical_setup:
