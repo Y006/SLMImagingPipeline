@@ -8,8 +8,8 @@ capture_settings:
   monitor_idx: 1
   scale_factor: 0.2
   display_position:    # 功能需要在代码里面修改以启用
-  display_image_path: "data/example/分辨率测试卡.jpg"
-  slm_image_path: "data/example/分辨率测试卡.jpg"
+  display_image_path: "data/example/usaf_1951_resolution_test_chart.jpg"
+  slm_image_path: "data/example/usaf_1951_resolution_test_chart.jpg"
 
 physical_setup:
   object_name: "扑克牌"

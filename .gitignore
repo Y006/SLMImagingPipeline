@@ -28,7 +28,7 @@ fza_patten_gen_masked_r*/*.png
 *.tiff
 *.bmp
 *.png
-!分辨率测试卡.JPG
+!usaf_1951_resolution_test_chart.JPG
 .counter.json
 
 # 忽略整个 output 目录及其所有内容

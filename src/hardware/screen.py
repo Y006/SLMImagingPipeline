@@ -141,7 +141,7 @@ def display_image(display_image_path, monitor_idx, scale_factor):
 def main():
     screen = Screen(monitor_index=2, bg="black")
 
-    img_path1 = r"D:\qjy\camera_slm_pipeline\data\example\分辨率测试卡.JPG"
+    img_path1 = r"D:\qjy\camera_slm_pipeline\data\example\usaf_1951_resolution_test_chart.JPG"
     scale_factor = 0.1
     success = screen.show_image(img_path1, scale_factor)
     if success:
@@ -163,7 +163,7 @@ def main():
     # scale_factor = 0.2
 
     # 在新的位置显示第三张图像
-    img_path3 = r"D:\qjy\camera_slm_pipeline\data\example\分辨率测试卡.JPG"
+    img_path3 = r"D:\qjy\camera_slm_pipeline\data\example\usaf_1951_resolution_test_chart.JPG"
     position = (1500, 700)  # 指定第三张图片显示的位置 (x, y)
     success = screen.show_image_at(img_path3, position, scale_factor)
 
