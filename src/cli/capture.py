@@ -520,3 +520,50 @@ def run_calibration_logic_new(config_path: str):
             except:
                 pass
 
+
+def run_calibration_logic_withoutSLM(config_path: str):
+    """
+    标定/预览模式 (ScreenPro 版本)，但是不包含 SLM（更加通用）
+    
+    流程：加载配置 -> 启动显示器 -> 挂起等待
+    
+    Args:
+        config_path: 配置文件路径
+    """
+    cfg, _ = load_context(config_path)
+    cap = cfg.get("capture_settings", {})
+
+    screen_pro = None
+    
+    try:
+        # --- 1. 显示器 ---
+        # 优先使用 screen_pro 配置
+        screen_pro_config = cap.get("screen_pro")
+        
+        if screen_pro_config:
+            # 使用新的 ScreenPro 方式
+            logger.info("使用 ScreenPro 显示系统")
+            screen_pro = start_screen_pro_display(screen_pro_config)
+        else:
+            # 使用旧的 display_image 方式（兼容旧配置）
+            disp_path = cap.get("display_image_path")
+            if disp_path:
+                logger.info(f"显示图片: {disp_path} [旧方式]")
+                t = threading.Thread(
+                    target=display_image,
+                    args=(disp_path, cap.get("monitor_idx", 1), cap.get("scale_factor", 1.0)),
+                    daemon=True
+                )
+                t.start()
+        
+        # --- 3. 挂起 ---
+        logger.info(">>> 系统已就绪，正在显示图案... (按 Ctrl+C 退出) <<<")
+        time.sleep(999999)
+        
+    finally:
+        if screen_pro:
+            try:
+                screen_pro.close()
+            except:
+                pass
+

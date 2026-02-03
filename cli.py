@@ -13,7 +13,8 @@ from src.cli import (
     run_wiener_logic,
     run_screen_calibration,
     run_measurement_logic_new,
-    run_calibration_logic_new
+    run_calibration_logic_new,
+    run_calibration_logic_withoutSLM
 )
 
 DEFAULT_CONFIG_PATH = "configs/config.yaml"
@@ -73,6 +74,15 @@ def calibrate(
     """[bold yellow](缩写: sys_cal)[/bold yellow]  [cyan][辅助工具][/cyan] 系统标定：加载 SLM 和显示器场景图片，便于用相机软件进行预览"""
     # run_calibration_logic(config)
     run_calibration_logic_new(config)
+
+
+@app.command(name="sys_cal_no_slm", hidden=True)
+@app.command(name="system_calibrate_without_slm")
+def calibrate_without_slm(
+    config: str = typer.Option(DEFAULT_CONFIG_PATH, "--config", "-c")
+):
+    """[bold yellow](缩写: sys_cal_no_slm)[/bold yellow]  [cyan][辅助工具][/cyan] 系统标定（无 SLM 版本）：仅加载显示器场景图片，便于用相机软件进行预览"""
+    run_calibration_logic_withoutSLM(config)
 
 
 @app.command(name="ins", hidden=True)
