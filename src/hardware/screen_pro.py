@@ -26,13 +26,14 @@ class ScreenPro:
     
     CALIBRATION_FILE = ".screen_calibration.json"
     
-    def __init__(self, monitor_index: int = 0, bg: str = "black"):
+    def __init__(self, monitor_index: int = 0, bg: str = "black", skip_calibration: bool = False):
         """
         初始化显示系统
         
         Args:
             monitor_index: 目标显示器索引
             bg: 背景颜色
+            skip_calibration: 是否跳过校准数据检查（用于校准流程）
         """
         self.monitor_index = monitor_index
         self.bg = bg
@@ -59,7 +60,11 @@ class ScreenPro:
         self._tkimg = None  # 保存图像引用，防止 GC
         
         # 加载或初始化 PPC（每厘米像素数）
-        self.ppc = self._load_or_calibrate_ppc()
+        if skip_calibration:
+            # 跳过校准检查，用于校准流程
+            self.ppc = None
+        else:
+            self.ppc = self._load_or_calibrate_ppc()
         
     def _init_monitor_geometry(self):
         """初始化显示器几何参数"""
@@ -118,7 +123,7 @@ class ScreenPro:
         logger.error("="*60)
         logger.error("错误：未找到校准数据！")
         logger.error(f"校准文件路径: {calib_file}")
-        calibrate_manualor("")
+        logger.error("")
         logger.error("请先运行校准流程：")
         logger.error("  screen = ScreenPro(monitor_index=0)")
         logger.error("  screen.calibrate_manual()")
@@ -222,6 +227,17 @@ class ScreenPro:
         # 重新创建窗口用于后续显示
         self._recreate_window()
         
+        return ppc
+    
+    def calibrate_manual(self) -> float:
+        """
+        手动校准流程（公开接口）
+        
+        Returns:
+            计算得到的 PPC 值（像素/厘米）
+        """
+        ppc = self._calibrate()
+        self.ppc = ppc  # 更新实例的 PPC 值
         return ppc
     
     def set_ppc(self, ppc: float):
@@ -408,24 +424,6 @@ class ScreenPro:
     def start(self):
         """启动事件循环"""
         self.root.mainloop()
-    
-    
-    # ========== 首次使用：校准流程 ==========
-    # 方式 1: 使用交互式校准
-    # screen = ScreenPro(monitor_index=0, bg="black")
-    # screen.calibrate_manual()  # 启动校准流程
-    
-    # 方式 2: 直接设置已知的 PPC 值
-    # screen = ScreenPro(monitor_index=0, bg="black")
-    # screen.set_ppc(38.5)  # 假设你已知 PPC = 38.5 像素/厘米
-    
-    # ========== 正常使用：加载已有校准数据 ==========
-    try:
-        screen = ScreenPro(monitor_index=0, bg="black")
-    except RuntimeError:
-        logger.error("请先进行校准！")
-        return
-        self.root.update()
     
     def close(self):
         """关闭窗口"""

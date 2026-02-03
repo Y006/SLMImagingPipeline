@@ -149,14 +149,14 @@ def run_screen_calibration(monitor_index: int = 0, set_ppc: float = None):
                 logger.error("PPC 值必须大于 0")
                 raise typer.Exit(1)
             
-            screen = ScreenPro(monitor_index=monitor_index, bg="black")
+            screen = ScreenPro(monitor_index=monitor_index, bg="black", skip_calibration=True)
             screen.set_ppc(set_ppc)
             logger.success(f"✓ PPC 已设置为: {set_ppc:.2f} 像素/厘米")
             logger.info(f"校准数据已保存，下次使用时将自动加载")
             screen.close()
         else:
             # 方式 2: 交互式校准
-            screen = ScreenPro(monitor_index=monitor_index, bg="black")
+            screen = ScreenPro(monitor_index=monitor_index, bg="black", skip_calibration=True)
             ppc = screen.calibrate_manual()
             logger.success(f"✓ 校准完成！PPC = {ppc:.2f} 像素/厘米")
             logger.info(f"校准数据已保存，下次使用时将自动加载")
