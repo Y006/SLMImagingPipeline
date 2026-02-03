@@ -17,9 +17,9 @@ DEFAULT_CONFIG_PATH = "configs/config.yaml"
 
 # 头部帮助信息：保持简洁，去掉过多的颜色干扰
 APP_HELP = """
-[bold cyan]SLM 成像系统控制终端：这是一个集成了 [bold green]数据采集[/bold green]、[bold yellow]系统标定[/bold yellow] 和 [bold magenta]图像重建[/bold magenta] 的一站式命令行工具。[/bold cyan] 🚀
+[bold cyan]SLM 成像系统控制终端：这是一个集成了 [bold green]数据采集[/bold green]、[bold yellow]系统标定[/bold yellow] 和 [bold magenta]图像重建[/bold magenta] 的一站式命令行工具。[/bold cyan] 
 
-[bold]✨ 典型工作流:[/bold]
+[bold]典型工作流:[/bold]
 1. [green]采集 PSF[/green] : [italic]uv run cli.py psf[/italic]
 2. [yellow]采集测量[/yellow]: [italic]uv run cli.py meas[/italic]
 3. [magenta]Reconstruction[/magenta]: [italic]uv run cli.py ad path/to/image.png[/italic]
